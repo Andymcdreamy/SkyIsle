@@ -1,25 +1,29 @@
 {
-  "name": "skyisle:-floating-colony",
-  "private": true,
-  "version": "0.0.0",
+  "name": "sky-isle",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "three": "^0.181.2",
-    "react": "^19.2.0",
-    "@react-three/fiber": "^9.4.2",
-    "react-dom": "^19.2.0",
-    "@react-three/drei": "^10.7.7",
-    "@google/genai": "^1.30.0"
+    "@google/genai": "^1.30.0",
+    "@react-three/drei": "^9.121.4",
+    "@react-three/fiber": "^8.17.14",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.173.0"
   },
   "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "@types/three": "^0.173.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0"
   }
 }
