@@ -10,7 +10,6 @@ const HARP_SCALE = [
 class AudioEngine {
   ctx: AudioContext | null = null;
   masterGain: GainNode | null = null;
-  harpBus: GainNode | null = null;
   initialized = false;
 
   init() {
@@ -41,6 +40,7 @@ interface SoundControllerProps {
 const SoundController: React.FC<SoundControllerProps> = ({ selectedId }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const harpGainRef = useRef<GainNode | null>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
   // Initialize Audio on Interaction
   useEffect(() => {
@@ -49,7 +49,6 @@ const SoundController: React.FC<SoundControllerProps> = ({ selectedId }) => {
       audioEngine.resume();
 
       if (audioEngine.ctx && audioEngine.masterGain && !harpGainRef.current) {
-        // Setup the audio graph once
         setupAudioGraph(audioEngine.ctx, audioEngine.masterGain);
         setIsPlaying(true);
       }
@@ -61,11 +60,21 @@ const SoundController: React.FC<SoundControllerProps> = ({ selectedId }) => {
     return () => {
       window.removeEventListener('pointerdown', handleInteraction);
       window.removeEventListener('keydown', handleInteraction);
+      
+      // Cleanup audio nodes if component unmounts
+      if (cleanupRef.current) {
+        cleanupRef.current();
+        cleanupRef.current = null;
+        harpGainRef.current = null;
+        setIsPlaying(false);
+      }
     };
   }, []);
 
   const setupAudioGraph = (ctx: AudioContext, master: GainNode) => {
     const t = ctx.currentTime;
+    const nodesToStop: OscillatorNode[] = [];
+    const nodesToDisconnect: AudioNode[] = [];
 
     // --- 1. Space Drone (Subtle background) ---
     const osc1 = ctx.createOscillator();
@@ -90,6 +99,9 @@ const SoundController: React.FC<SoundControllerProps> = ({ selectedId }) => {
 
     osc1.start();
     osc2.start();
+    
+    nodesToStop.push(osc1, osc2);
+    nodesToDisconnect.push(droneGain, droneFilter);
 
     // --- 2. Harp Effects Bus (Delay/Echo) ---
     const harpBus = ctx.createGain();
@@ -114,6 +126,17 @@ const SoundController: React.FC<SoundControllerProps> = ({ selectedId }) => {
     delayFilter.connect(master); // Wet signal
 
     harpGainRef.current = harpBus;
+    nodesToDisconnect.push(harpBus, delay, feedback, delayFilter);
+
+    // Define cleanup function
+    cleanupRef.current = () => {
+      nodesToStop.forEach(osc => {
+        try { osc.stop(); } catch(e) {}
+      });
+      nodesToDisconnect.forEach(node => {
+         try { node.disconnect(); } catch(e) {}
+      });
+    };
   };
 
   // Generative Harp Sequencer
@@ -121,8 +144,11 @@ const SoundController: React.FC<SoundControllerProps> = ({ selectedId }) => {
     if (!isPlaying || !audioEngine.ctx) return;
 
     let timeoutId: number;
+    let isActive = true;
 
     const playNote = () => {
+       if (!isActive) return;
+
        const ctx = audioEngine.ctx;
        const dest = harpGainRef.current;
 
@@ -147,6 +173,14 @@ const SoundController: React.FC<SoundControllerProps> = ({ selectedId }) => {
 
          osc.start(t);
          osc.stop(t + 3.1);
+         
+         // Cleanup individual note nodes after they are done to keep memory usage flat
+         setTimeout(() => {
+            try { 
+              osc.disconnect(); 
+              env.disconnect(); 
+            } catch(e) {}
+         }, 3200);
        }
 
        // Schedule next note randomly to create organic feel
@@ -157,7 +191,10 @@ const SoundController: React.FC<SoundControllerProps> = ({ selectedId }) => {
 
     playNote();
 
-    return () => window.clearTimeout(timeoutId);
+    return () => {
+      isActive = false;
+      window.clearTimeout(timeoutId);
+    };
   }, [isPlaying]);
 
   // Effect: Play Selection SFX
@@ -183,6 +220,10 @@ const SoundController: React.FC<SoundControllerProps> = ({ selectedId }) => {
     
     osc.start();
     osc.stop(t + 0.5);
+    
+    setTimeout(() => {
+       try { osc.disconnect(); gain.disconnect(); } catch(e) {}
+    }, 600);
 
   }, [selectedId]);
 
