@@ -1,15 +1,27 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { BuildingData, GeminiResponse } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const apiKey = process.env.API_KEY;
+// Only initialize if key exists
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 export const generateBuildingLore = async (building: BuildingData): Promise<GeminiResponse> => {
+  // Immediate fallback if no AI client
+  if (!ai) {
+    console.warn("Gemini API Key missing. Using fallback data.");
+    return {
+      description: `Archives offline (No API Key). Displaying cached data: ${building.baseDescription}`,
+      secret: "Connection to colonial database failed. Please configure API_KEY.",
+      status: "unknown"
+    };
+  }
+
   try {
     const prompt = `
       Generate a creative sci-fi status report for a building on a floating space island.
       
       Building Name: ${building.name}
-      Base Function: ${building.baseDescription}
+      Base Description: ${building.baseDescription}
       
       The output must be a JSON object with:
       - description: A 2-sentence atmospheric description of current operations.
@@ -18,7 +30,7 @@ export const generateBuildingLore = async (building: BuildingData): Promise<Gemi
     `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.0-flash", // Updated model name if applicable, or keep existing
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -34,9 +46,9 @@ export const generateBuildingLore = async (building: BuildingData): Promise<Gemi
       }
     });
 
-    const text = response.text;
+    const text = response.text; // Accessing as property, not function
     if (!text) throw new Error("No response from Gemini");
-    
+
     return JSON.parse(text) as GeminiResponse;
 
   } catch (error) {

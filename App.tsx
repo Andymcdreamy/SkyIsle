@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import World from './components/World';
 import InfoPanel from './components/InfoPanel';
 import { BUILDINGS } from './constants';
@@ -47,13 +47,13 @@ const App: React.FC = () => {
         </p>
       </div>
 
-      <InfoPanel 
-        building={currentBuilding} 
-        lore={lore} 
+      <InfoPanel
+        building={currentBuilding}
+        lore={lore}
         loading={loading}
         onClose={handleClosePanel}
       />
-      
+
       {/* Instruction hint */}
       {!selectedId && (
         <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 text-white/50 text-sm font-mono animate-bounce pointer-events-none">
